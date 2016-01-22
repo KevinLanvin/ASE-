@@ -7,6 +7,8 @@
 #include "hardware.h"
 #include "hw_config.h"
 
+int next_pid=0;
+
 enum ctx_state_e{
 CTX_INIT,
 CTX_EXQ,
@@ -15,6 +17,7 @@ CTX_END
 
 struct ctx_s{
 char * ctx_base; /* adr de départ */
+int ctx_pid;
 char* ctx_name;
 void * ctx_esp;
 void * ctx_ebp; /* enregistrement des registres de la frame du contexte */
@@ -41,29 +44,26 @@ static struct ctx_s* current_ctx = (struct ctx_s*) 0;
 /*contexte de départ de l'anneau*/
 static struct ctx_s * ctx_ring;
 
-int ctx_names(char** name){
-
+int ctx_names(char** name,int* pid){
 	name[0]=ctx_ring->ctx_name;
 	struct ctx_s * cur=ctx_ring->ctx_next;
 	int i=1;
 	while(cur!=ctx_ring){
 		name[i]=cur->ctx_name;
+		pid[i]=cur->ctx_pid;
 		i++;
 		cur= cur->ctx_next;
 	}
 	return i;
 }
 
-struct timeval* ctx_time(char* name){
-	if(!strcmp(ctx_ring->ctx_name,name)){
+struct timeval* ctx_time(int pid){	
+	if(ctx_ring->ctx_pid == pid)
 		return ctx_ring->ctx_time_spent;
-	}
 	struct ctx_s * cur=ctx_ring->ctx_next;
-	while(cur!=ctx_ring && strcmp(cur->ctx_name,name)){
-	printf("%s",cur->ctx_name);
+	while(cur!=ctx_ring && cur->ctx_pid != pid)
 		cur=cur->ctx_next;
-	}
-	if(!strcmp(cur->ctx_name,name))
+	if(cur->ctx_pid == pid)
 		return cur->ctx_time_spent;
 	exit(EXIT_FAILURE);
 }
@@ -76,7 +76,7 @@ void create_ctx(int stack_size, funct_t f, void * arg,char* name){
 	_mask(15);
 	/*initialisation du contexte courant*/
 	init_ctx(ctx_new,stack_size,f,arg,name);
-
+	next_pid++;
 	/*si le ring n'est pas initialisé*/
 	if(ctx_ring){
 		ctx_new->ctx_next=ctx_ring->ctx_next;
@@ -99,6 +99,7 @@ void yield(){
 
 int init_ctx(struct ctx_s * ctx, int size_stack, funct_t f, void * arg,char* name){
 	ctx->ctx_base=(char*)malloc(size_stack);
+	ctx->ctx_pid=next_pid;
 	ctx->ctx_name=name;
 	ctx->ctx_esp=ctx->ctx_base+size_stack - sizeof(int);
 	ctx->ctx_ebp=ctx->ctx_base+size_stack - sizeof(int);
@@ -181,7 +182,7 @@ void start_current_ctx(){
 
 void start_sched(){
     unsigned int i;
-    
+
     /* init hardware */
     if (init_hardware(HARDWARE_INI) == 0) {
 	fprintf(stderr, "Error in hardware initialization\n");

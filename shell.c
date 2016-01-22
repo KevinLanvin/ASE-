@@ -56,13 +56,16 @@ void init_cmds(){
 /* definitions des commandes */
 void ps(void* arg){
 	char** name= malloc(sizeof(char*)*128);
-	int nb_ctx=ctx_names(name);
+	int* pids = malloc(sizeof(int)*128);
+	int nb_ctx = ctx_names(name,pids);
 	int i;
 	struct timeval* t;
 	for(i=0;i<nb_ctx;i++){
-		t=ctx_time(name[i]);
-		printf("\t- %s\t%ds %dus\n",name[i],(int)t->tv_sec,(int)t->tv_usec);
+		t=ctx_time(pids[i]);
+		printf("\t- %10s (%d)\t%3ds %8dus\n",name[i],pids[i],(int)t->tv_sec,(int)t->tv_usec);
 	}
+	free(name);
+	free(pids);
 }
 void ls(){
 }
