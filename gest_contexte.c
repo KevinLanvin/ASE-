@@ -46,6 +46,7 @@ static struct ctx_s * ctx_ring;
 
 int ctx_names(char** name,int* pid){
 	name[0]=ctx_ring->ctx_name;
+	pid[0]=ctx_ring->ctx_pid;
 	struct ctx_s * cur=ctx_ring->ctx_next;
 	int i=1;
 	while(cur!=ctx_ring){

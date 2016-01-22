@@ -60,9 +60,10 @@ void ps(void* arg){
 	int nb_ctx = ctx_names(name,pids);
 	int i;
 	struct timeval* t;
+	printf("Processes (%d) :\n",nb_ctx);
 	for(i=0;i<nb_ctx;i++){
 		t=ctx_time(pids[i]);
-		printf("\t- %10s (%d)\t%3ds %8dus\n",name[i],pids[i],(int)t->tv_sec,(int)t->tv_usec);
+		printf("\t- %10s (%d) %8dus\n",name[i],pids[i],((int)t->tv_sec*1000000) + (int)t->tv_usec);
 	}
 	free(name);
 	free(pids);
