@@ -18,11 +18,9 @@ struct cmd_s available_cmds[NB_CMD]= {
 int fibo(int a,int b);
 void wait_for_cmd(char * buffer);
 void parse_cmd(char* buffer);
-void init_cmds();
 
 
 void shell(void* arg){
-	init_cmds();
 	char * buffer;	
 	buffer = malloc(BUFFER_SIZE * sizeof(char));
 	while(1){
@@ -48,9 +46,6 @@ void parse_cmd(char* buffer){
 		}
 }
 
-void init_cmds(){
-
-}
 
 
 /* definitions des commandes */

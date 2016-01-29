@@ -3,32 +3,10 @@
 #include <string.h>
 #include <sys/time.h>
 #include <assert.h>
+#include "volumes.h"
 #include "gest_contexte.h"
 #include "hardware.h"
 #include "hw_config.h"
-
-int next_pid=0;
-
-enum ctx_state_e{
-CTX_INIT,
-CTX_EXQ,
-CTX_END
-};
-
-struct ctx_s{
-char * ctx_base; /* adr de départ */
-int ctx_pid;
-char* ctx_name;
-void * ctx_esp;
-void * ctx_ebp; /* enregistrement des registres de la frame du contexte */
-funct_t *  ctx_f; /* enregistrement de la fonction */
-void * ctx_arg; /* enregistrement de l'argument de la fonction f */ 
-enum ctx_state_e ctx_state; /* état du contexte */
-unsigned int ctx_magic; /* vérifie le contexte */
-struct timeval *ctx_wake_time;
-struct timeval *ctx_time_spent;
-struct ctx_s * ctx_next;
-};
 
 void start_current_ctx();
 int init_ctx(struct ctx_s * ctx, int size_stack, funct_t f, void * arg,char* name);
@@ -37,6 +15,7 @@ void irq_handler();
 static void empty_it(void);
 static void timer_it();
 
+int next_pid=0;
 
 /* sauvegarde du contexte courant*/
 static struct ctx_s* current_ctx = (struct ctx_s*) 0;
@@ -112,6 +91,7 @@ int init_ctx(struct ctx_s * ctx, int size_stack, funct_t f, void * arg,char* nam
 	ctx -> ctx_time_spent = malloc(sizeof(struct timeval));
 	(ctx -> ctx_time_spent) -> tv_sec = 0 ;
 	(ctx -> ctx_time_spent) -> tv_usec = 0;
+	ctx -> ctx_nextBlocked = NULL;
 	return 0;
 }
 
@@ -120,11 +100,11 @@ void switch_to_ctx(struct ctx_s * ctx){
 	assert(ctx->ctx_magic==CTX_MAGIC);
 
 	_mask(15);
-	if(ctx->ctx_state==CTX_END){
+	if(ctx->ctx_state==CTX_END || ctx->ctx_state==CTX_BLOCKED){
 		if(ctx==ctx_ring)
 			ctx_ring->ctx_next=ctx->ctx_next;
 		if(ctx==current_ctx)
-			exit(EXIT_SUCCESS);
+			exit(EXIT_FAILURE);
 	/*libérer délivrer la mémoire*/
 		free(ctx->ctx_base);
 		free(ctx->ctx_wake_time);
@@ -181,21 +161,21 @@ void start_current_ctx(){
 	yield();
 }
 
+
+void load_first_context(){
+	current_ctx=ctx_ring;
+}
+
 void start_sched(){
-    unsigned int i;
-
-    /* init hardware */
-    if (init_hardware(HARDWARE_INI) == 0) {
-	fprintf(stderr, "Error in hardware initialization\n");
-	exit(EXIT_FAILURE);
-    }
+unsigned int i;
     
-    /* dummy interrupt handlers */
-    for (i=0; i<16; i++)
-	IRQVECTOR[i] = empty_it;
-
-    /* program timer */
-    IRQVECTOR[TIMER_IRQ] = timer_it;    
+	/* dummy interrupt handlers */
+	for (i=0; i<16; i++)
+		if(i!=14)
+			IRQVECTOR[i] = empty_it;
+	
+	/* program timer */
+	IRQVECTOR[TIMER_IRQ] = timer_it;    
 	_out(TIMER_PARAM,128+64+32+8); /* reset + alarm on + 8 tick / alarm */
 	_out(TIMER_ALARM,0xFFFFFFFE);  /* alarm at next tick (at 0xFFFFFFFF) */
 	yield();
@@ -211,5 +191,33 @@ static void
 empty_it(void)
 {
     return;
+}
+
+
+/* gestion des semaphore */
+
+
+void sem_init(struct sem_s* sem, unsigned int val){
+	sem->ctx_blocked_list = NULL;
+	sem->ctx_cpt = val;
+}
+
+void sem_down (struct sem_s * sem){
+	sem->ctx_cpt --;
+	if(sem->ctx_cpt < 0){
+		current_ctx->ctx_state = CTX_BLOCKED;
+		current_ctx->ctx_nextBlocked = sem->ctx_blocked_list;
+		sem->ctx_blocked_list = current_ctx;
+		yield();
+	}
+}
+
+
+void sem_up (struct sem_s * sem){
+	sem->ctx_cpt ++;
+	if(sem->ctx_cpt <= 0){
+		sem->ctx_blocked_list->ctx_state = CTX_EXQ;
+		sem->ctx_blocked_list = sem->ctx_blocked_list->ctx_nextBlocked;
+	}
 }
 
