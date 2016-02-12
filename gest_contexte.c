@@ -105,6 +105,7 @@ void switch_to_ctx(struct ctx_s * ctx){
 			ctx_ring->ctx_next=ctx->ctx_next;
 		if(ctx==current_ctx)
 			exit(EXIT_FAILURE);
+		
 	/*libérer délivrer la mémoire*/
 		free(ctx->ctx_base);
 		free(ctx->ctx_wake_time);

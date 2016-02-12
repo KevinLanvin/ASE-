@@ -6,22 +6,17 @@
 #include "gest_contexte.h"
 #include "hardware.h"
 #include "drive.h"
-typedef void (funct_irq) (unsigned char *,int);
-
-struct irq_funct_s{
-	funct_irq* f;
-	unsigned char * buffer;
-	int size;
-};
+typedef void (funct_irq) ();
 
 struct sem_s mutex_disk ,mutex_buff_cpy;
-struct irq_funct_s irq_funct;
+funct_irq* irq_funct;
 
 
-void write(const unsigned char* buffer, int size);
-void read(unsigned char* buffer,int size);
-void format(unsigned char* buffer , int v);
-void seek(unsigned int c, unsigned int s, const unsigned char* buffer, int size, unsigned char car);
+//void write(const unsigned char* buffer, int size);
+//void read(unsigned char* buffer,int size);
+void format();
+//void seek(unsigned int c, unsigned int s, const unsigned char* buffer, int size, unsigned char car);
+void seek_format(unsigned int c, unsigned int s);
 void consume_next();
 
 void dump(unsigned char *buffer, unsigned int buffer_size,int ascii_dump,int octal_dump)
@@ -95,13 +90,17 @@ void write_sector(unsigned int c, unsigned int s, const unsigned char* buffer){
 
 void format_sector(unsigned int c, unsigned int s){
 	sem_down(&mutex_disk);
+printf("debut frmt\n");
 	/* deplacer la tête de lecture */
-	seek(c,s,(char *)NULL,(int)NULL,'w');
-
-	/* écrit sur le secteur */
+	seek_format(c,s);
+printf("fin frmt\n");
+	/* attente de la tete de lecture */
 	sem_down(&mutex_buff_cpy);
+	/* écrit sur le secteur */
+	printf("salut\n");
 	sem_up(&mutex_disk);  
 }
+
 
 void write(const unsigned char* buffer, int size){
 	_out(HDA_DATAREG,0);
@@ -119,7 +118,9 @@ void read(unsigned char* buffer,int size){
 	sem_up(&mutex_buff_cpy);
 }
 
-void format(unsigned char* buffer ,int v){
+void format(){
+int v=0;
+printf("bonjours\n");
 	/* nbSec(int16) */
 	_out(HDA_DATAREG,((1>>8)&0xff));
 	_out(HDA_DATAREG+1,(1&0xff));
@@ -132,6 +133,16 @@ void format(unsigned char* buffer ,int v){
 	sem_up(&mutex_buff_cpy);
 }
 
+void seek_format(unsigned int c, unsigned int s){
+	_out(HDA_DATAREG,((c>>8)&0xff));
+	_out(HDA_DATAREG+1,(c&0xff));
+	_out(HDA_DATAREG+2,((s>>8)&0xff));
+	_out(HDA_DATAREG+3,(s&0xff));
+	_out(HDA_CMDREG,CMD_SEEK);
+	irq_funct = format;
+}
+
+/*
 void seek(unsigned int c, unsigned int s, const unsigned char* buffer, int size, unsigned char car){
 	_out(HDA_DATAREG,((c>>8)&0xff));
 	_out(HDA_DATAREG+1,(c&0xff));
@@ -155,10 +166,11 @@ void seek(unsigned int c, unsigned int s, const unsigned char* buffer, int size,
 		exit(EXIT_FAILURE);
 	}
 	irq_funct = new_irq_funct;
-}
+}*/
 
 void consume_next() {
- (irq_funct.f) (irq_funct.buffer , irq_funct.size);
+printf("ouais%s\n",irq_funct);
+ (irq_funct)();
 }
 
 void init_disk(){

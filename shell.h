@@ -9,3 +9,4 @@ void ps();
 void ls();
 void cat();
 void compute();
+void format_all();

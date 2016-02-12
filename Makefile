@@ -2,7 +2,7 @@
 ### Main rules 
 ###------------------------------------------------------------
 main :main.o gest_contexte.o shell.o drive.o volumes.o
-	gcc -Wall -ansi -m32 -pedantic -g -o main main.o gest_contexte.o shell.o drive.o volumes.o -L./lib -lhardware
+	gcc -Wall -ansi -m32 -pedantic -g -o main main.o gest_contexte.o shell.o -L./lib -lhardware
 main.o :main.c gest_contexte.h shell.h
 	gcc -Wall -ansi -m32 -pedantic -g -c main.c 
 gest_contexte.o : gest_contexte.c gest_contexte.h
