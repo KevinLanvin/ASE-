@@ -196,8 +196,6 @@ empty_it(void)
 
 
 /* gestion des semaphore */
-
-
 void sem_init(struct sem_s* sem, unsigned int val){
 	sem->ctx_blocked_list = NULL;
 	sem->ctx_cpt = val;
