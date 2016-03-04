@@ -17,8 +17,8 @@ void f_pong (void *arg);
 void
 f_ping (void *args)
 {
-  int i = 0;
-  while (i++ < 20)
+int i=0;
+  while (i++<20)
     printf ("[%d] ping\n", _in (CORE_ID));
   return;
 }
@@ -26,13 +26,13 @@ f_ping (void *args)
 void
 f_pong (void *args)
 {
-  int i = 0;
-  while (i++ < 20)
+int i=0;
+  while (i++<20)
     printf ("[%d] pong\n", _in (CORE_ID));
 
   return;
 }
-
+ 
 
 void
 activated ()
@@ -43,7 +43,7 @@ activated ()
   create_ctx (16384, f_ping, NULL, "ping", id);
   create_ctx (16384, f_pong, NULL, "pong", id);
   start_sched ();
-  while (1);
+
 /*
 	while(1){
 		if(_in(CORE_LOCK)==1){
