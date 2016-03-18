@@ -9,13 +9,14 @@
 #include "hw_config.h"
 #include "core.h"
 
+#define MAX(x,y)	((x)>(y)?(x):(y))
 
 void start_current_ctx ();
 int init_ctx (struct ctx_s *ctx, int size_stack, funct_t f, void *arg,
 	      char *name);
 void switch_to_ctx (struct ctx_s *ctx);
 void timer_it ();
-void steal ();
+int nb_ctx (struct ctx_s *ctx);
 
 int next_pid = 0;
 
@@ -90,54 +91,62 @@ switch_to_ctx (struct ctx_s *ctx)
   /* vérification du contexte valide */
   assert (ctx->ctx_magic == CTX_MAGIC);
   _mask (15);
-      if (ctx->ctx_state == CTX_END || ctx->ctx_state == CTX_BLOCKED)
+  while (_in (CORE_LOCK) != 1);
+  printf ("core lock [%d]\n", _in (CORE_ID));
+  if (ctx->ctx_state == CTX_END || ctx->ctx_state == CTX_BLOCKED)
+    {
+      if (ctx == ctx_ring[_in (CORE_ID)])
+	ctx_ring[_in (CORE_ID)]->ctx_next = ctx->ctx_next;
+      if (ctx == current_ctx[_in (CORE_ID)])
 	{
-	  if (ctx == ctx_ring[_in (CORE_ID)])
-	    ctx_ring[_in (CORE_ID)]->ctx_next = ctx->ctx_next;
-	  if (ctx == current_ctx[_in (CORE_ID)])
-	    {
-	      steal ();
-	      return;
-	    }
-
-	  /*libérer délivrer la mémoire */
-	  free (ctx->ctx_base);
-	  free (ctx->ctx_wake_time);
-	  free (ctx->ctx_time_spent);
-	  ctx->ctx_base = NULL;
-	  current_ctx[_in (CORE_ID)]->ctx_next = ctx->ctx_next;
-	  free (ctx);
-	  ctx = NULL;
-	  switch_to_ctx (current_ctx[_in (CORE_ID)]->ctx_next);
+  printf ("core unlock [%d]\n", _in (CORE_ID));
+  _out (CORE_UNLOCK, 0xFF);
 	  return;
 	}
 
-      if (current_ctx[_in (CORE_ID)])
-	{
-	  struct timeval *tv = malloc (sizeof (struct timeval));
-	  /* sauvegarde du contexte courant */
-	asm ("movl %%esp, %0 \n": "=r" (current_ctx[_in (CORE_ID)]->ctx_esp):
-	:"%esp");
-	asm ("movl %%ebp, %0 \n": "=r" (current_ctx[_in (CORE_ID)]->ctx_ebp):
-	:);
-	  gettimeofday (tv, NULL);
-	  (current_ctx[_in (CORE_ID)]->ctx_time_spent)->tv_sec +=
-	    (tv->tv_sec) -
-	    ((current_ctx[_in (CORE_ID)]->ctx_wake_time)->tv_sec);
-	  (current_ctx[_in (CORE_ID)]->ctx_time_spent)->tv_usec +=
-	    (tv->tv_usec) -
-	    ((current_ctx[_in (CORE_ID)]->ctx_wake_time)->tv_usec);
-	}
-      current_ctx[_in (CORE_ID)] = ctx;
-      /*changement du contexte courrant */
-      gettimeofday (current_ctx[_in (CORE_ID)]->ctx_wake_time, NULL);
-    asm ("movl %0, %%esp \n":
-    : "r" (current_ctx[_in (CORE_ID)]->ctx_esp):"%esp");
-    asm ("movl %0, %%ebp \n":
-    : "r" (current_ctx[_in (CORE_ID)]->ctx_ebp):);
+      /*libérer délivrer la mémoire */
+      free (ctx->ctx_base);
+      free (ctx->ctx_wake_time);
+      free (ctx->ctx_time_spent);
+      ctx->ctx_base = NULL;
+      current_ctx[_in (CORE_ID)]->ctx_next = ctx->ctx_next;
+      free (ctx);
+      ctx = NULL;
+  printf ("core unlock [%d]\n", _in (CORE_ID));
+  _out (CORE_UNLOCK, 0xFF);
+      switch_to_ctx (current_ctx[_in (CORE_ID)]->ctx_next);
+      return;
+    }
+
+  if (current_ctx[_in (CORE_ID)])
+    {
+      struct timeval *tv = malloc (sizeof (struct timeval));
+      /* sauvegarde du contexte courant */
+    asm ("movl %%esp, %0 \n": "=r" (current_ctx[_in (CORE_ID)]->ctx_esp):
+    :"%esp");
+    asm ("movl %%ebp, %0 \n": "=r" (current_ctx[_in (CORE_ID)]->ctx_ebp):
+    :);
+      gettimeofday (tv, NULL);
+      (current_ctx[_in (CORE_ID)]->ctx_time_spent)->tv_sec +=
+	(tv->tv_sec) - ((current_ctx[_in (CORE_ID)]->ctx_wake_time)->tv_sec);
+      (current_ctx[_in (CORE_ID)]->ctx_time_spent)->tv_usec +=
+	(tv->tv_usec) -
+	((current_ctx[_in (CORE_ID)]->ctx_wake_time)->tv_usec);
+    }
+  current_ctx[_in (CORE_ID)] = ctx;
+  /*changement du contexte courrant */
+  gettimeofday (current_ctx[_in (CORE_ID)]->ctx_wake_time, NULL);
+asm ("movl %0, %%esp \n":
+: "r" (current_ctx[_in (CORE_ID)]->ctx_esp):"%esp");
+asm ("movl %0, %%ebp \n":
+: "r" (current_ctx[_in (CORE_ID)]->ctx_ebp):);
+
+  printf ("core unlock [%d]\n", _in (CORE_ID));
+  _out (CORE_UNLOCK, 0xFF);
   _mask (1);
   if (current_ctx[_in (CORE_ID)]->ctx_state == CTX_INIT)
     start_current_ctx ();
+
 }
 
 void
@@ -153,13 +162,6 @@ start_current_ctx ()
 }
 
 void
-steal ()
-{
-  printf ("%d travail terminaieee\n", _in (CORE_ID));
-  return;
-}
-
-void
 start_sched ()
 {
   /* program timer */
@@ -168,6 +170,44 @@ start_sched ()
   _out (TIMER_ALARM, 0xFFFFFFFE);	/* alarm at next tick (at 0xFFFFFFFF) */
   yield ();
 }
+
+int
+max_ring ()
+{
+  int max = 0, nCore = _in (CORE_ID);
+  int i, tmp;
+  int var;
+  for (i = 1; i < CORE_NCORE; i++)
+    {
+      printf ("%d\n", i);
+      var = nb_ctx (ctx_ring[i]);
+      tmp = MAX (max, var);
+      if (tmp != max)
+	{
+	  nCore = i;
+	  max  = tmp;
+	}
+    }
+  return nCore;
+}
+
+int
+nb_ctx (struct ctx_s *ring)
+{
+  if (!ring)
+    return 0;
+  struct ctx_s *cur;
+  int rslt = 1;
+  cur = ring;
+  while (cur->ctx_next != ring)
+    {
+      rslt++;
+      cur = cur->ctx_next;
+    }
+printf("nb ctx : %d\n",rslt);
+  return rslt;
+}
+
 
 void
 timer_it ()

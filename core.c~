@@ -17,8 +17,8 @@ void f_pong (void *arg);
 void
 f_ping (void *args)
 {
-int i=0;
-  while (i++<20)
+  int i = 0;
+  while (i++ < 20)
     printf ("[%d] ping\n", _in (CORE_ID));
   return;
 }
@@ -26,24 +26,46 @@ int i=0;
 void
 f_pong (void *args)
 {
-int i=0;
-  while (i++<20)
+  int i = 0;
+  while (i++ < 20)
     printf ("[%d] pong\n", _in (CORE_ID));
 
   return;
 }
- 
+
+void
+infinityAndODELA(void *args){
+while(1);
+}
 
 void
 activated ()
 {
-  int id = _in (CORE_ID);
-  printf ("Core n°%d activaient\n", id);
-  _out (CORE_IRQMAPPER + _in (CORE_ID), 0x1 << TIMER_IRQ);
-  create_ctx (16384, f_ping, NULL, "ping", id);
-  create_ctx (16384, f_pong, NULL, "pong", id);
-  start_sched ();
 
+
+if(_in (CORE_ID)==1){
+  printf ("Core n°%d activaient\n", _in (CORE_ID));
+_out (CORE_IRQMAPPER + _in (CORE_ID), 0x1 << TIMER_IRQ);
+  create_ctx (16384, infinityAndODELA, NULL, "infinityAndODELA", _in (CORE_ID));
+  create_ctx (16384, infinityAndODELA, NULL, "infinityAndODELA", _in (CORE_ID));
+  create_ctx (16384, infinityAndODELA, NULL, "infinityAndODELA", _in (CORE_ID));
+  create_ctx (16384, infinityAndODELA, NULL, "infinityAndODELA", _in (CORE_ID));
+  create_ctx (16384, infinityAndODELA, NULL, "infinityAndODELA", _in (CORE_ID));
+  create_ctx (16384, infinityAndODELA, NULL, "infinityAndODELA", _in (CORE_ID));
+  create_ctx (16384, infinityAndODELA, NULL, "infinityAndODELA", _in (CORE_ID));
+  create_ctx (16384, infinityAndODELA, NULL, "infinityAndODELA", _in (CORE_ID));
+  create_ctx (16384, infinityAndODELA, NULL, "infinityAndODELA", _in (CORE_ID));
+  create_ctx (16384, infinityAndODELA, NULL, "infinityAndODELA", _in (CORE_ID));
+  create_ctx (16384, infinityAndODELA, NULL, "infinityAndODELA", _in (CORE_ID));
+  start_sched ();
+}
+else{
+  printf ("Core n°%d activaient\n", _in (CORE_ID));
+  _out (CORE_IRQMAPPER + _in (CORE_ID), 0x1 << TIMER_IRQ);
+  create_ctx (16384, f_ping, NULL, "ping", _in (CORE_ID));
+  create_ctx (16384, f_pong, NULL, "pong", _in (CORE_ID));
+  start_sched ();
+}
 /*
 	while(1){
 		if(_in(CORE_LOCK)==1){

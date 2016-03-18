@@ -33,6 +33,9 @@ struct sem_s {
 
 int ctx_names(char** name,int* pid);
 struct timeval* ctx_time(int pid);
+int max_ring ();
+
+
 
 void create_ctx(int stack_size,funct_t f,void * arg,char* name,int core);
 void start_sched();

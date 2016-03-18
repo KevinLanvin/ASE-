@@ -12,7 +12,7 @@
 void f_ping (void *arg);
 void f_pong (void *arg);
 
-
+void steal ();
 
 void
 f_ping (void *args)
@@ -33,17 +33,53 @@ f_pong (void *args)
   return;
 }
 
+void
+infinityAndODELA (void *args)
+{
+  while (1);
+}
 
 void
 activated ()
 {
-  int id = _in (CORE_ID);
-  printf ("Core n°%d activaient\n", id);
-  _out (CORE_IRQMAPPER + _in (CORE_ID), 0x1 << TIMER_IRQ);
-  create_ctx (16384, f_ping, NULL, "ping", id);
-  create_ctx (16384, f_pong, NULL, "pong", id);
-  start_sched ();
-  while (1);
+
+
+  if (_in (CORE_ID) == 1)
+    {
+      printf ("Core n°%d activaient\n", _in (CORE_ID));
+      _out (CORE_IRQMAPPER + _in (CORE_ID), 0x1 << TIMER_IRQ);
+      create_ctx (16384, infinityAndODELA, NULL, "infinityAndODELA",
+		  _in (CORE_ID));
+      create_ctx (16384, infinityAndODELA, NULL, "infinityAndODELA",
+		  _in (CORE_ID));
+      create_ctx (16384, infinityAndODELA, NULL, "infinityAndODELA",
+		  _in (CORE_ID));
+      create_ctx (16384, infinityAndODELA, NULL, "infinityAndODELA",
+		  _in (CORE_ID));
+      create_ctx (16384, infinityAndODELA, NULL, "infinityAndODELA",
+		  _in (CORE_ID));
+      create_ctx (16384, infinityAndODELA, NULL, "infinityAndODELA",
+		  _in (CORE_ID));
+      create_ctx (16384, infinityAndODELA, NULL, "infinityAndODELA",
+		  _in (CORE_ID));
+      create_ctx (16384, infinityAndODELA, NULL, "infinityAndODELA",
+		  _in (CORE_ID));
+      create_ctx (16384, infinityAndODELA, NULL, "infinityAndODELA",
+		  _in (CORE_ID));
+      create_ctx (16384, infinityAndODELA, NULL, "infinityAndODELA",
+		  _in (CORE_ID));
+      create_ctx (16384, infinityAndODELA, NULL, "infinityAndODELA",
+		  _in (CORE_ID));
+      start_sched ();
+    }
+  else
+    {
+      printf ("Core n°%d activaient\n", _in (CORE_ID));
+      _out (CORE_IRQMAPPER + _in (CORE_ID), 0x1 << TIMER_IRQ);
+      create_ctx (16384, f_ping, NULL, "ping", _in (CORE_ID));
+      create_ctx (16384, f_pong, NULL, "pong", _in (CORE_ID));
+      start_sched ();
+    }
 /*
 	while(1){
 		if(_in(CORE_LOCK)==1){
@@ -58,6 +94,7 @@ _out(CORE_UNLOCK,0xFF);
 		}
 	}
 */
+steal();
 }
 
 void
@@ -76,6 +113,16 @@ init_core_et_un ()
 
   _out (CORE_STATUS, 0xFE);
 
+}
+
+
+void
+steal ()
+{
+   _out (CORE_IRQMAPPER + _in (CORE_ID), 0);
+  printf ("%d travail terminaieee\n", _in (CORE_ID));
+  printf ("core surchargé : %d\n", max_ring ());
+  while (1);
 }
 
 
