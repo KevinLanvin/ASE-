@@ -204,7 +204,7 @@ nb_ctx (struct ctx_s *ring)
       rslt++;
       cur = cur->ctx_next;
     }
-printf("nb ctx : %d\n",rslt);
+//printf("nb ctx : %d\n",rslt);
   return rslt;
 }
 
