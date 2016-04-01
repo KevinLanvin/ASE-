@@ -8,6 +8,9 @@
 #include <asm/uaccess.h>
 
 
+static struct proc_dir_entry *proc_entry;
+static struct proc_dir_entry *proc_dir;
+
 static const struct file_operations ase_proc_fops = {
     .owner      = THIS_MODULE,
     .open       = seq_open,
@@ -20,8 +23,12 @@ static const struct file_operations ase_proc_fops = {
 static int __init
 ase_proc_init(void)
 {
-    proc_create("ase_cmd", 0666, NULL, &ase_proc_fops);
-proc_mkdir("ase/",&ase_proc_fops);
+    proc_entry  = proc_create("ase_cmd", 0666, NULL, &ase_proc_fops);
+    proc_dir = proc_mkdir("ase",NULL);
+/*
+create_proc_entry("ase_cmd",0666,proc_entry);
+create_proc_entry("ase",0666,proc_dir);
+*/
     return 0;
 }
 

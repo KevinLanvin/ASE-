@@ -1,0 +1,1 @@
+cmd_/home/m1/moyart/ASE++/ASE-/TP_Kernel/mod_ase.ko := ld -r -m elf_i386 -T ./scripts/module-common.lds --build-id  -o /home/m1/moyart/ASE++/ASE-/TP_Kernel/mod_ase.ko /home/m1/moyart/ASE++/ASE-/TP_Kernel/mod_ase.o /home/m1/moyart/ASE++/ASE-/TP_Kernel/mod_ase.mod.o
