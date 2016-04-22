@@ -1,4 +1,4 @@
-kernel//local/moyart/modules/hello.ko
-kernel//local/moyart/modules/jiffies.ko
-kernel//local/moyart/modules/jprobe.ko
-kernel//local/moyart/modules/mod_ase.ko
+kernel//home/m1/moyart/ASE++/ASE-/TP_Kernel/hello.ko
+kernel//home/m1/moyart/ASE++/ASE-/TP_Kernel/jiffies.ko
+kernel//home/m1/moyart/ASE++/ASE-/TP_Kernel/jprobe.ko
+kernel//home/m1/moyart/ASE++/ASE-/TP_Kernel/mod_ase.ko

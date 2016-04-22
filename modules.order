@@ -1,0 +1,5 @@
+kernel//local/moyart/modules/hello.ko
+kernel//local/moyart/modules/jiffies.ko
+kernel//local/moyart/modules/jprobe.ko
+kernel//local/moyart/modules/mod_ase.ko
+kernel//local/moyart/modules/jprobe_create.ko
